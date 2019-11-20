@@ -4,6 +4,35 @@
 
 int numLeituras, numEscritas;
 
+pthread_mutex_t mutex;
+pthread_cond_t c_leitor, c_escritor;
+
+int contL = 0, contE = 0; // variáveis de controle
+
+void entraLeitura(int id) {
+	pthread_mutex_lock(&mutex);
+
+	while(contE) {
+		pthread_cond_wait(&c_leitor, &mutex);
+	}
+
+	contL++;
+	printf("Thread %d entrou; leitores: %d\n", id, contL);
+	pthread_mutex_unlock(&mutex);
+}
+
+void saiLeitura(int id) {
+	pthread_mutex_lock(&mutex);
+	contL--;
+
+	if( !contL ){
+    pthread_cond_signal(&c_escritor);
+  }
+
+	printf("Thread%d saiu; leitores: %d\n", id, contL);
+	pthread_mutex_unlock(&mutex);
+}
+
 void * Leitora( void * arg){
 
   pthread_exit(NULL);
@@ -34,6 +63,10 @@ int main (int argc, char * argv[]){
      return 1;
   }
 
+  pthread_mutex_init(&mutex, NULL);
+  pthread_cond_init (&c_leitor, NULL);
+  pthread_cond_init (&c_escritor, NULL);
+
   //cria threads de leitura
   tidL = malloc( sizeof(pthread_t)* leitoras);
   for(t = 0; t < leitoras; t++){
@@ -61,4 +94,11 @@ int main (int argc, char * argv[]){
     pthread_join(tidE[t], NULL);
   }
 
+  pthread_mutex_destroy(&mutex);
+  pthread_cond_destroy(&c_escritor);
+  pthread_cond_destroy(&c_leitor);
+  free(tidL);
+  free(tidE);
+
+  pthread_exit(NULL);
 }
