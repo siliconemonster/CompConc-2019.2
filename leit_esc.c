@@ -7,6 +7,8 @@ int numLeituras, numEscritas;
 pthread_mutex_t mutex;
 pthread_cond_t c_leitor, c_escritor;
 
+int recurso = -1; //com -1 queremos dizer que nenhuma thread escreveu nada nessa variável
+
 int contL = 0, contE = 0; // variáveis de controle
 
 void entraLeitura(int id) {
@@ -29,22 +31,68 @@ void saiLeitura(int id) {
     pthread_cond_signal(&c_escritor);
   }
 
-	printf("Thread%d saiu; leitores: %d\n", id, contL);
+	printf("Thread %d saiu; leitores: %d\n", id, contL);
+	pthread_mutex_unlock(&mutex);
+}
+
+void entraEscrita(int tid) {
+	pthread_mutex_lock(&mutex);
+	while(contL || contE){
+		pthread_cond_wait(&c_escritor, &mutex);
+	}
+	contE++;
+	printf("Escritor %d entrou; escritores: %d\n", tid, contE);
+	pthread_mutex_unlock(&mutex);
+}
+
+void saiEscrita(int tid) {
+	pthread_mutex_lock(&mutex);
+	contE--;
+	pthread_cond_signal(&c_escritor);
+	pthread_cond_broadcast(&c_leitor);
+	printf("Escritor %d saiu; escritores: %d\n", tid, contE);
 	pthread_mutex_unlock(&mutex);
 }
 
 void * Leitora( void * arg){
+	int id = * (int *) arg;
+	int i;
+	FILE * arq;
+	char nome[10];
 
+	sprintf(nome, "%d.txt", id);
+
+	arq = fopen(nome, "w");
+	if(arq == NULL) {
+		 fprintf(stderr, "Erro ao abrir o arquivo.\n");
+		 exit(1);
+	}
+	for (i = 0; i < numLeituras; i++){
+		entraLeitura(id);
+			fprintf(arq, "%d\n", recurso);
+		saiLeitura(id);
+	}
+
+	free(arg);
   pthread_exit(NULL);
 }
 void * Escritora( void * arg){
+	int id = * (int *) arg;
+	int i;
 
+	for (i = 0; i < numEscritas; i++){
+		entraEscrita(id);
+		recurso = id;
+		saiEscrita(id);
+	}
+
+	free(arg);
   pthread_exit(NULL);
 }
 
 int main (int argc, char * argv[]){
   int leitoras, escritoras; //quantidade de threads de leitura e escrita
-  FILE *arq;
+  FILE * arqlog;
   pthread_t * tidE, * tidL;
   int t, * tid;
 
@@ -57,8 +105,8 @@ int main (int argc, char * argv[]){
   numLeituras = atoi(argv[3]); //número de leituras
   numEscritas = atoi(argv[4]); //número de escritas
 
-  arq = fopen(argv[5], "w");
-  if(arq == NULL) {
+  arqlog = fopen(argv[5], "w");
+  if(arqlog == NULL) {
      fprintf(stderr, "Erro ao abrir o arquivo.\n");
      return 1;
   }
