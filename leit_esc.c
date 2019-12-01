@@ -19,9 +19,9 @@ void entraLeitura(int id) {
   fprintf(arqlog, "leitor_tentando(%d)\n", id);
 
 	while(contE) {
-    fprintf(arqlog, "leitor_bloq(%d)\n", id);
+    /* fprintf(arqlog, "leitor_bloq(%d)\n", id); */
 		pthread_cond_wait(&c_leitor, &mutex);
-    fprintf(arqlog, "leitor_voltando(%d)\n", id);
+    /* fprintf(arqlog, "leitor_voltando(%d)\n", id); */
 	}
 
 	contL++;
@@ -34,15 +34,15 @@ void saiLeitura(int id) {
 	pthread_mutex_lock(&mutex);
 	contL--;
 
-  fprintf(arqlog, "leitor_saindo(%d)\n", id);
+  /* fprintf(arqlog, "leitor_saindo(%d)\n", id); */
 
 	if( !contL ){
-    fprintf(arqlog, "leitor_sinaliza(%d)\n", id);
+    /* fprintf(arqlog, "leitor_sinaliza(%d)\n", id); */
     pthread_cond_signal(&c_escritor);
   }
 
-	printf("Thread %d saiu; leitores: %d\n", id, contL);
-  fprintf(arqlog, "leitor_saiu(%d, %d)\n", id, contL);
+	printf("Leitor %d saiu; leitores: %d\n", id, contL);
+  fprintf(arqlog, "leitor_saiu(%d, %d)\n", id, recurso);
 	pthread_mutex_unlock(&mutex);
 }
 
@@ -50,9 +50,9 @@ void entraEscrita(int tid) {
 	pthread_mutex_lock(&mutex);
   fprintf(arqlog, "escritor_tentando(%d)\n", tid);
 	while(contL || contE){
-    fprintf(arqlog, "escritor_bloq(%d, %d, %d)\n", tid, contL, contE);
+    /* fprintf(arqlog, "escritor_bloq(%d, %d, %d)\n", tid, contL, contE); */
 		pthread_cond_wait(&c_escritor, &mutex);
-    fprintf(arqlog, "escritor_voltando(%d)\n", tid);
+    /* fprintf(arqlog, "escritor_voltando(%d)\n", tid); */
 	}
 	contE++;
   fprintf(arqlog, "escritor_entrou(%d)\n", tid);
@@ -65,7 +65,7 @@ void saiEscrita(int tid) {
 	contE--;
 	pthread_cond_signal(&c_escritor);
 	pthread_cond_broadcast(&c_leitor);
-  fprintf(arqlog, "escritor_saiu(%d)\n", tid);
+  fprintf(arqlog, "escritor_saiu(%d, %d)\n", tid, recurso);
 	printf("Escritor %d saiu; escritores: %d\n", tid, contE);
 	pthread_mutex_unlock(&mutex);
 }
