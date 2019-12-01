@@ -65,9 +65,15 @@ def main():
         escritores = escritores - 1
 
 
+    if len(sys.argv) < 2:
+        print('Digite "python', sys.argv[0], '<nome do arquivo de log>"')
+        sys.exit(1)
+
     with open(sys.argv[1]) as log:
         for linha in log:
             exec(linha)
+
+    print('Ok!')
 
 if __name__ == '__main__':
     main()
