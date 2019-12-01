@@ -9,17 +9,24 @@ pthread_cond_t c_leitor, c_escritor;
 
 int recurso = -1; //com -1 queremos dizer que nenhuma thread escreveu nada nessa variável
 
+FILE *arqlog; // Arquivo que será usado para registro do log
+
 int contL = 0, contE = 0; // variáveis de controle
 
 void entraLeitura(int id) {
 	pthread_mutex_lock(&mutex);
 
+  fprintf(arqlog, "leitor_tentando(%d)\n", id);
+
 	while(contE) {
+    fprintf(arqlog, "leitor_bloq(%d)\n", id);
 		pthread_cond_wait(&c_leitor, &mutex);
+    fprintf(arqlog, "leitor_voltando(%d)\n", id);
 	}
 
 	contL++;
 	printf("Thread %d entrou; leitores: %d\n", id, contL);
+  fprintf(arqlog, "leitor_entrou(%d, %d)\n", id, contL);
 	pthread_mutex_unlock(&mutex);
 }
 
@@ -27,20 +34,28 @@ void saiLeitura(int id) {
 	pthread_mutex_lock(&mutex);
 	contL--;
 
+  fprintf(arqlog, "leitor_saindo(%d)\n", id);
+
 	if( !contL ){
+    fprintf(arqlog, "leitor_sinaliza(%d)\n", id);
     pthread_cond_signal(&c_escritor);
   }
 
 	printf("Thread %d saiu; leitores: %d\n", id, contL);
+  fprintf(arqlog, "leitor_saiu(%d, %d)\n", id, contL);
 	pthread_mutex_unlock(&mutex);
 }
 
 void entraEscrita(int tid) {
 	pthread_mutex_lock(&mutex);
+  fprintf(arqlog, "escritor_tentando(%d)\n", tid);
 	while(contL || contE){
+    fprintf(arqlog, "escritor_bloq(%d, %d, %d)\n", tid, contL, contE);
 		pthread_cond_wait(&c_escritor, &mutex);
+    fprintf(arqlog, "escritor_voltando(%d)\n", tid);
 	}
 	contE++;
+  fprintf(arqlog, "escritor_entrou(%d)\n", tid);
 	printf("Escritor %d entrou; escritores: %d\n", tid, contE);
 	pthread_mutex_unlock(&mutex);
 }
@@ -50,6 +65,7 @@ void saiEscrita(int tid) {
 	contE--;
 	pthread_cond_signal(&c_escritor);
 	pthread_cond_broadcast(&c_leitor);
+  fprintf(arqlog, "escritor_saiu(%d)\n", tid);
 	printf("Escritor %d saiu; escritores: %d\n", tid, contE);
 	pthread_mutex_unlock(&mutex);
 }
@@ -73,6 +89,7 @@ void * Leitora( void * arg){
 		saiLeitura(id);
 	}
 
+  fclose(arq);
 	free(arg);
   pthread_exit(NULL);
 }
@@ -92,7 +109,6 @@ void * Escritora( void * arg){
 
 int main (int argc, char * argv[]){
   int leitoras, escritoras; //quantidade de threads de leitura e escrita
-  FILE * arqlog;
   pthread_t * tidE, * tidL;
   int t, * tid;
 
@@ -145,6 +161,7 @@ int main (int argc, char * argv[]){
   pthread_mutex_destroy(&mutex);
   pthread_cond_destroy(&c_escritor);
   pthread_cond_destroy(&c_leitor);
+  fclose(arqlog);
   free(tidL);
   free(tidE);
 
