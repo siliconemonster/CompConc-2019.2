@@ -14,13 +14,14 @@ FILE *arqlog; // Arquivo que será usado para registro do log
 
 int contL = 0, contE = 0; // variáveis de controle
 int leitoresBloq = 0, escritoresBloq = 0;
-int turno = 1;
+int turno = 1; // variável para alternância de threads
 
 void entraLeitura(int id) {
 	pthread_mutex_lock(&mutex);
 
   fprintf(arqlog, "leitor_tentando(%d)\n", id);
 
+  // leitores não entram se houverem escritores, ou houverem escritores esperando no turno destes
 	while(contE || (escritoresBloq && !turno)) {
     fprintf(arqlog, "leitor_bloq(%d, %d, %d)\n", id, escritoresBloq, turno);
     leitoresBloq++;
@@ -30,7 +31,6 @@ void entraLeitura(int id) {
 	}
 
 	contL++;
-	/* printf("Thread %d entrou; leitores: %d\n", id, contL); */
   fprintf(arqlog, "leitor_entrou(%d, %d, %d)\n", id, contL, turno);
 	pthread_mutex_unlock(&mutex);
 }
@@ -39,15 +39,13 @@ void saiLeitura(int id) {
 	pthread_mutex_lock(&mutex);
 	contL--;
 
-  /* fprintf(arqlog, "leitor_saindo(%d)\n", id); */
+  // passa o turno pros escritores
   turno = 0;
 
 	if(escritoresBloq > 0){
-    /* fprintf(arqlog, "leitor_sinaliza(%d)\n", id); */
     pthread_cond_signal(&c_escritor);
   }
 
-	/* printf("Leitor %d saiu; leitores: %d\n", id, contL); */
   fprintf(arqlog, "leitor_saiu(%d, %d)\n", id, recurso);
 	pthread_mutex_unlock(&mutex);
 }
@@ -55,6 +53,7 @@ void saiLeitura(int id) {
 void entraEscrita(int tid) {
 	pthread_mutex_lock(&mutex);
   fprintf(arqlog, "escritor_tentando(%d)\n", tid);
+  // escritores só entrão se não houverem leitores nem escritores ativos, e se não houverem leitores esperando no turno destes
 	while(contL || contE || (leitoresBloq && turno)){
     fprintf(arqlog, "escritor_bloq(%d, %d, %d)\n", tid, leitoresBloq, turno);
     escritoresBloq++;
@@ -64,13 +63,13 @@ void entraEscrita(int tid) {
 	}
 	contE++;
   fprintf(arqlog, "escritor_entrou(%d, %d)\n", tid, turno);
-	/* printf("Escritor %d entrou; escritores: %d\n", tid, contE); */
 	pthread_mutex_unlock(&mutex);
 }
 
 void saiEscrita(int tid) {
 	pthread_mutex_lock(&mutex);
 	contE--;
+  // passa o turno para os leitores
   turno = 1;
   if (leitoresBloq > 0) {
     pthread_cond_broadcast(&c_leitor);
@@ -79,7 +78,6 @@ void saiEscrita(int tid) {
     pthread_cond_signal(&c_escritor);
   }
   fprintf(arqlog, "escritor_saiu(%d, %d)\n", tid, recurso);
-	/* printf("Escritor %d saiu; escritores: %d\n", tid, contE); */
 	pthread_mutex_unlock(&mutex);
 }
 
@@ -91,11 +89,13 @@ void * Leitora( void * arg){
 
 	sprintf(nome, "%d.txt", id);
 
+  // arquivo de saída específico da thread
 	arq = fopen(nome, "w");
 	if(arq == NULL) {
 		 fprintf(stderr, "Erro ao abrir o arquivo.\n");
 		 exit(1);
 	}
+  // leituras
 	for (i = 0; i < numLeituras; i++){
 		entraLeitura(id);
 			fprintf(arq, "%d\n", recurso);
@@ -110,6 +110,7 @@ void * Escritora( void * arg){
 	int id = * (int *) arg;
 	int i;
 
+  // escritas
 	for (i = 0; i < numEscritas; i++){
 		entraEscrita(id);
 		recurso = id;
@@ -145,7 +146,7 @@ int main (int argc, char * argv[]){
   pthread_cond_init (&c_leitor, NULL);
   pthread_cond_init (&c_escritor, NULL);
 
-  //cria threads de leitura
+  // cria threads de leitura
   GET_TIME(comeco);
   tidL = malloc( sizeof(pthread_t)* leitoras);
   for(t = 0; t < leitoras; t++){
@@ -156,6 +157,7 @@ int main (int argc, char * argv[]){
     }
   }
 
+  // cria as threads de escrita
   tidE = malloc( sizeof(pthread_t)* escritoras);
   for(t = 0; t < escritoras; t++){
     tid = malloc(sizeof(int)); if(tid==NULL) { printf("--ERRO: malloc()\n"); exit(-1); }
