@@ -1,0 +1,15 @@
+* Introdução
+  O trabalho consiste em projetar uma solução para o problema clássico de
+  leitores e escritores, de modo a garantir a ausência de *inanição* das threads.
+  Para isso, foi empregada uma estratégia de sincronização que visa tentar
+  alcançar uma prioridade igualitária entre leitores e escritores.
+  
+* Compilando e executando
+  Para compilar o programa concorrente, basta-se executar o seguinte comando: \\
+  ~gcc leit_esc.c -lpthread -Wall~
+  
+  Para se executar o programa, deve-se efetuar a seguinte instrução no terminal: \\
+  ~./a.out <nº de leitores> <nº de escritores> <nº de leituras> <nº de escritas> <arquivo de log>~
+  
+  E por fim, para se usar o script de validação do log, executa-se: \\
+  ~python validador.py <nome do arquivo de log>~
