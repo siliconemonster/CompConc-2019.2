@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include "timer.h"
 
 int numLeituras, numEscritas;
 
@@ -123,6 +124,7 @@ int main (int argc, char * argv[]){
   int leitoras, escritoras; //quantidade de threads de leitura e escrita
   pthread_t * tidE, * tidL;
   int t, * tid;
+  double comeco, fim, tempo;
 
   if(argc < 6) {
      fprintf(stderr, "Digite: %s <threads de leitura> <threads de escrita> <número de leituras> <número de escritas> <arquivo log>.\n", argv[0]);
@@ -144,6 +146,7 @@ int main (int argc, char * argv[]){
   pthread_cond_init (&c_escritor, NULL);
 
   //cria threads de leitura
+  GET_TIME(comeco);
   tidL = malloc( sizeof(pthread_t)* leitoras);
   for(t = 0; t < leitoras; t++){
     tid = malloc(sizeof(int)); if(tid==NULL) { printf("--ERRO: malloc()\n"); exit(-1); }
@@ -169,6 +172,7 @@ int main (int argc, char * argv[]){
   for (t = 0; t < escritoras; t++) {
     pthread_join(tidE[t], NULL);
   }
+  GET_TIME(fim);
 
   pthread_mutex_destroy(&mutex);
   pthread_cond_destroy(&c_escritor);
@@ -176,6 +180,9 @@ int main (int argc, char * argv[]){
   fclose(arqlog);
   free(tidL);
   free(tidE);
+
+  tempo = fim - comeco;
+  printf("Tempo de execução: %.9lf\n", tempo);
 
   pthread_exit(NULL);
 }
