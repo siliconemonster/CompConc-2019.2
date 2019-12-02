@@ -21,16 +21,16 @@ void entraLeitura(int id) {
   fprintf(arqlog, "leitor_tentando(%d)\n", id);
 
 	while(contE || (escritoresBloq && !turno)) {
-    /* fprintf(arqlog, "leitor_bloq(%d)\n", id); */
+    fprintf(arqlog, "leitor_bloq(%d, %d, %d)\n", id, escritoresBloq, turno);
     leitoresBloq++;
 		pthread_cond_wait(&c_leitor, &mutex);
     leitoresBloq--;
-    /* fprintf(arqlog, "leitor_voltando(%d)\n", id); */
+    fprintf(arqlog, "leitor_voltando(%d)\n", id);
 	}
 
 	contL++;
 	/* printf("Thread %d entrou; leitores: %d\n", id, contL); */
-  fprintf(arqlog, "leitor_entrou(%d, %d)\n", id, contL);
+  fprintf(arqlog, "leitor_entrou(%d, %d, %d)\n", id, contL, turno);
 	pthread_mutex_unlock(&mutex);
 }
 
@@ -55,14 +55,14 @@ void entraEscrita(int tid) {
 	pthread_mutex_lock(&mutex);
   fprintf(arqlog, "escritor_tentando(%d)\n", tid);
 	while(contL || contE || (leitoresBloq && turno)){
-    /* fprintf(arqlog, "escritor_bloq(%d, %d, %d)\n", tid, contL, contE); */
+    fprintf(arqlog, "escritor_bloq(%d, %d, %d)\n", tid, leitoresBloq, turno);
     escritoresBloq++;
 		pthread_cond_wait(&c_escritor, &mutex);
     escritoresBloq--;
-    /* fprintf(arqlog, "escritor_voltando(%d)\n", tid); */
+    fprintf(arqlog, "escritor_voltando(%d)\n", tid);
 	}
 	contE++;
-  fprintf(arqlog, "escritor_entrou(%d)\n", tid);
+  fprintf(arqlog, "escritor_entrou(%d, %d)\n", tid, turno);
 	/* printf("Escritor %d entrou; escritores: %d\n", tid, contE); */
 	pthread_mutex_unlock(&mutex);
 }
