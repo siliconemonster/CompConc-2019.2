@@ -13,3 +13,13 @@
   
   E por fim, para se usar o script de validação do log, executa-se: \\
   ~python validador.py <nome do arquivo de log>~
+
+* O programa
+  Uma explicação mais detalhada da aplicação se encontra no relatório disponível
+  neste repositório.
+  
+  Em linhas gerais, este programa consiste num modelo de solução para o problema
+  anteriormente citado de leitores e escritores, que busca minizizar a possiblidade
+  de inanição com a combinação de contadores de threads aguardando inativas e
+  uma variável de controle para definir qual tipo de thread inativa será reativada,
+  entre escritores e leitores.
