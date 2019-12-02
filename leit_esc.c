@@ -12,6 +12,7 @@ int recurso = -1; //com -1 queremos dizer que nenhuma thread escreveu nada nessa
 FILE *arqlog; // Arquivo que será usado para registro do log
 
 int contL = 0, contE = 0; // variáveis de controle
+int leitoresBloq = 0, escritorsBloq = 0;
 
 void entraLeitura(int id) {
 	pthread_mutex_lock(&mutex);
@@ -20,11 +21,14 @@ void entraLeitura(int id) {
 
 	while(contE) {
     /* fprintf(arqlog, "leitor_bloq(%d)\n", id); */
+    leitoresBloq++;
 		pthread_cond_wait(&c_leitor, &mutex);
+    leitoresBloq--;
     /* fprintf(arqlog, "leitor_voltando(%d)\n", id); */
 	}
 
 	contL++;
+  if(leitoresBloq > 0) pthread_cond_signal(&c_leitor);
 	printf("Thread %d entrou; leitores: %d\n", id, contL);
   fprintf(arqlog, "leitor_entrou(%d, %d)\n", id, contL);
 	pthread_mutex_unlock(&mutex);
@@ -36,7 +40,7 @@ void saiLeitura(int id) {
 
   /* fprintf(arqlog, "leitor_saindo(%d)\n", id); */
 
-	if( !contL ){
+	if( !contL && escritorsBloq > 0){
     /* fprintf(arqlog, "leitor_sinaliza(%d)\n", id); */
     pthread_cond_signal(&c_escritor);
   }
@@ -51,7 +55,9 @@ void entraEscrita(int tid) {
   fprintf(arqlog, "escritor_tentando(%d)\n", tid);
 	while(contL || contE){
     /* fprintf(arqlog, "escritor_bloq(%d, %d, %d)\n", tid, contL, contE); */
+    escritorsBloq++;
 		pthread_cond_wait(&c_escritor, &mutex);
+    escritorsBloq--;
     /* fprintf(arqlog, "escritor_voltando(%d)\n", tid); */
 	}
 	contE++;
@@ -63,8 +69,11 @@ void entraEscrita(int tid) {
 void saiEscrita(int tid) {
 	pthread_mutex_lock(&mutex);
 	contE--;
-	pthread_cond_signal(&c_escritor);
-	pthread_cond_broadcast(&c_leitor);
+  if (leitoresBloq > 0) {
+    pthread_cond_signal(&c_leitor);
+  } else if (escritorsBloq > 0) {
+    pthread_cond_signal(&c_escritor);
+  }
   fprintf(arqlog, "escritor_saiu(%d, %d)\n", tid, recurso);
 	printf("Escritor %d saiu; escritores: %d\n", tid, contE);
 	pthread_mutex_unlock(&mutex);
